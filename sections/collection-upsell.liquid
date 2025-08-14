@@ -1,0 +1,272 @@
+{% comment %}
+  Collection with Upsell Modal — Horizon-integrated (v11)
+  - Metafield: product.metafields.custom.upsell_products (Product → List → Product)
+  - JS asset required: assets/collection-upsell.js
+{% endcomment %}
+
+{% liquid
+  assign col                = section.settings.collection
+  assign heading            = section.settings.heading
+  assign modal_heading      = section.settings.modal_heading | default: 'Complete your look'
+  assign refresh_sections   = section.settings.refresh_sections | default: 'cart-drawer,cart-icon-bubble'
+  assign cart_open_selector = section.settings.cart_open_selector  | default: '.cart-drawer, [data-cart-drawer], [id*="CartDrawer"]'
+  assign pt                 = section.settings.padding_top   | default: 40
+  assign pb                 = section.settings.padding_bottom| default: 40
+%}
+
+<section
+  id="collection-upsell-{{ section.id }}"
+  class="collection-upsell"
+  style="padding-top:{{ pt }}px; padding-bottom:{{ pb }}px;"
+  data-refresh-sections="{{ refresh_sections | escape }}"
+  data-cart-open-selector="{{ cart_open_selector | escape }}"
+  data-modal-heading="{{ modal_heading | escape }}"
+>
+  <div class="page-width">
+    {% if heading != blank %}
+      <h2 class="collection-upsell__heading">{{ heading | escape }}</h2>
+    {% endif %}
+
+    {% if col != blank %}
+      <div class="collection-upsell__grid">
+        {% for product in col.products %}
+          {% liquid
+            assign current_variant = product.selected_or_first_available_variant
+            assign sku   = current_variant.sku | default: product.variants.first.sku
+            assign image = product.featured_image
+            assign upsell_list = product.metafields.custom.upsell_products.value
+          %}
+          <article class="product-card" data-product-handle="{{ product.handle }}">
+            <a href="{{ product.url }}" class="product-card__media" aria-label="{{ product.title }}">
+              {% if image %}
+                <img loading="lazy" src="{{ image | image_url: width: 700 }}" alt="{{ image.alt | escape }}">
+              {% endif %}
+            </a>
+
+            <h3 class="product-card__title">{{ product.title }}</h3>
+            <div class="product-card__sku">SKU: {{ sku | default: '—' }}</div>
+
+            <button
+              class="button button--primary open-upsell-modal"
+              type="button"
+              data-open-modal
+              data-product-handle="{{ product.handle }}"
+              data-variant-id="{{ current_variant.id }}"
+            >
+              Add to cart
+            </button>
+
+            <!-- JSON payload consumed by collection-upsell.js -->
+            <script type="application/json" class="product-upsell-data">
+            {
+              "title": {{ product.title | json }},
+              "imageUrl": {{ image | image_url: width: 700 | json }},
+              "variantId": {{ current_variant.id | json }},
+              "variantPrice": {{ current_variant.price | json }},
+              "sku": {{ sku | json }},
+              "upsells": [
+                {%- for up in upsell_list -%}
+                  {%- assign up_var = up.selected_or_first_available_variant -%}
+                  {
+                    "productId": {{ up.id | json }},
+                    "handle": {{ up.handle | json }},
+                    "title": {{ up.title | json }},
+                    "variantId": {{ up_var.id | json }},
+                    "price": {{ up_var.price | json }},
+                    "imageUrl": {{ up.featured_image | image_url: width: 500 | json }},
+                    "available": {{ up_var.available | json }}
+                  }{%- unless forloop.last -%},{%- endunless -%}
+                {%- endfor -%}
+              ]
+            }
+            </script>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p>No collection selected.</p>
+    {% endif %}
+  </div>
+
+  <!-- Modal (one per section) -->
+  <div class="upsell-modal" hidden data-upsell-modal>
+    <div class="upsell-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="upsellModalTitle">
+      <button class="upsell-modal__close" type="button" data-modal-close aria-label="Close">×</button>
+
+      <div class="upsell-modal__content">
+        <!-- LEFT column -->
+        <div class="upsell-modal__left">
+          <p class="upsell-modal__eyebrow" data-eyebrow>{{ modal_heading | escape }}</p>
+          <div class="upsell-modal__product" data-base-product></div>
+        </div>
+
+        <!-- RIGHT column -->
+        <div class="upsell-modal__right">
+          <div class="upsell-modal__carousel" data-upsell-carousel></div>
+        </div>
+
+        <!-- FOOTER (spans both) -->
+        <div class="upsell-modal__footer">
+          <div class="upsell-modal__subtotal">Subtotal: <span data-subtotal></span></div>
+          <button class="button button--primary" type="button" data-confirm-add>Confirm add to cart</button>
+        </div>
+      </div>
+    </div>
+    <div class="upsell-modal__backdrop" data-modal-close></div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "CollectionwithUpsellModal",
+  "settings": [
+    { "type": "collection", "id": "collection", "label": "Collection" },
+    { "type": "text", "id": "heading", "label": "Section heading", "default": "Bestsellers" },
+    { "type": "text", "id": "modal_heading", "label": "Modal heading", "default": "Complete your look" },
+
+    { "type": "range", "id": "padding_top", "min": 0, "max": 120, "step": 4, "unit": "px", "label": "Padding top", "default": 40 },
+    { "type": "range", "id": "padding_bottom", "min": 0, "max": 120, "step": 4, "unit": "px", "label": "Padding bottom", "default": 40 },
+
+    { "type": "text", "id": "refresh_sections", "label": "Cart sections to refresh (comma-separated IDs)", "default": "cart-drawer,cart-icon-bubble" },
+    { "type": "text", "id": "cart_open_selector", "label": "Cart drawer selector(s)", "default": ".cart-drawer, [data-cart-drawer], [id*=\"CartDrawer\"]" }
+  ],
+  "presets": [{ "name": "Collection with Upsell Modal" }]
+}
+{% endschema %}
+
+<link rel="preload" as="script" href="{{ 'collection-upsell.js' | asset_url }}">
+<script src="{{ 'collection-upsell.js' | asset_url }}" defer></script>
+
+<style>
+/* ---------- Section alignment (match Horizon page width) ---------- */
+#collection-upsell-{{ section.id }} > .page-width{
+  max-width: var(--page-width, 1200px);
+  margin-inline: auto;
+  padding-inline: clamp(12px, 3vw, 24px);
+}
+
+/* Heading (unchanged look) */
+#collection-upsell-{{ section.id }} .collection-upsell__heading{
+  font-size: clamp(1.25rem, 1.2rem + .6vw, 1.75rem);
+  line-height: 1.2; margin: 0 0 1rem;
+}
+
+/* Grid (same as you had) */
+#collection-upsell-{{ section.id }} .collection-upsell__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1.2rem;
+  justify-content: center;
+}
+#collection-upsell-{{ section.id }} .product-card{
+  border:1px solid rgba(0,0,0,.08);
+  border-radius:16px; padding:14px; background:#fff;
+  display:flex; flex-direction:column; height:100%;
+  box-shadow:0 1px 0 rgba(0,0,0,.03);
+  transition:transform .2s ease, box-shadow .2s ease;
+}
+#collection-upsell-{{ section.id }} .product-card:hover{
+  transform: translateY(-2px);
+  box-shadow:0 8px 24px rgba(0,0,0,.08);
+}
+#collection-upsell-{{ section.id }} .product-card__media{
+  position:relative; width:100%; aspect-ratio:1/1;
+  background:#f6f6f6; border-radius:12px; overflow:hidden;
+  display:flex; align-items:center; justify-content:center; margin-bottom:.6rem;
+}
+#collection-upsell-{{ section.id }} .product-card__media img{ max-width:100%; max-height:100%; object-fit:contain; display:block; }
+#collection-upsell-{{ section.id }} .product-card__title{ font-size:1rem; margin:0 0 .3rem; }
+#collection-upsell-{{ section.id }} .product-card__sku{ font-size:.875rem; opacity:.7; margin-bottom:.8rem; }
+#collection-upsell-{{ section.id }} .product-card .button{ margin-top:auto; }
+
+/* ---------- Modal shell ---------- */
+#collection-upsell-{{ section.id }} .upsell-modal[hidden]{ display:none; }
+#collection-upsell-{{ section.id }} .upsell-modal{ position:fixed; inset:0; z-index:999999; display:grid; place-items:center; }
+#collection-upsell-{{ section.id }} .upsell-modal__backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:999998; }
+
+/* Dialog */
+#collection-upsell-{{ section.id }} .upsell-modal__dialog{
+  position:relative; z-index:999999; background:#fff;
+  width:min(980px,92vw); max-height:88vh; overflow:hidden;
+  border-radius:18px; box-shadow:0 18px 44px rgba(0,0,0,.28);
+  /* remove internal padding so X can sit above cleanly */
+}
+
+/* Close button — big hit area + safe area + never overlaps */
+#collection-upsell-{{ section.id }} .upsell-modal__close{
+  position:absolute;
+  top: max(10px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
+  width:36px; height:36px;
+  border:0; border-radius:999px;
+  background:rgba(0,0,0,.05);
+  color:#000; font-size:20px; line-height:1;
+  display:grid; place-items:center;
+  cursor:pointer; z-index:3;
+}
+#collection-upsell-{{ section.id }} .upsell-modal__close:hover{ background:rgba(0,0,0,.09); }
+
+/* Content grid (give extra top padding so X never overlaps content) */
+#collection-upsell-{{ section.id }} .upsell-modal__content{
+  display:grid; grid-template-columns:1fr 1fr; gap:20px;
+  grid-template-areas:"left right" "footer footer";
+  padding: 56px 18px 18px; /* <-- extra top padding for the X */
+}
+#collection-upsell-{{ section.id }} .upsell-modal__left{ grid-area:left; }
+#collection-upsell-{{ section.id }} .upsell-modal__right{ grid-area:right; overflow:auto; max-height:58vh; padding-right:6px; }
+
+#collection-upsell-{{ section.id }} .upsell-modal__footer{
+  grid-area:footer; display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:6px;
+  position:sticky; bottom:0; background:#fff; padding-top:12px; border-top:1px solid rgba(0,0,0,.06);
+}
+#collection-upsell-{{ section.id }} .upsell-modal__subtotal{ font-weight:600; }
+
+/* Left/base product */
+#collection-upsell-{{ section.id }} .upsell-modal__eyebrow{
+  margin: 2px 0 10px; font-size:.9rem; text-transform:uppercase; letter-spacing:.02em; opacity:.75;
+}
+#collection-upsell-{{ section.id }} .upsell-modal__product .base{
+  display:flex; gap:14px; align-items:center; margin-bottom:12px;
+}
+#collection-upsell-{{ section.id }} .upsell-modal__product img{ width:110px; height:auto; border-radius:12px; }
+#collection-upsell-{{ section.id }} .upsell-modal__product h3{ margin:0 0 4px 0; font-size:clamp(1.2rem,1rem + .7vw,1.8rem); }
+
+/* Right list rows */
+#collection-upsell-{{ section.id }} .upsell-modal__carousel{ display:grid; gap:12px; grid-template-columns:1fr; }
+#collection-upsell-{{ section.id }} .upsell-row{
+  border:1px solid rgba(0,0,0,.08); border-radius:14px; padding:12px; background:#fff;
+  display:flex; gap:12px; align-items:center; height:100%;
+}
+#collection-upsell-{{ section.id }} .upsell-row.is-disabled{ opacity:.5; }
+#collection-upsell-{{ section.id }} .upsell-row .media{
+  width:96px; min-width:96px; height:96px; background:#f6f6f6; border-radius:10px;
+  display:flex; align-items:center; justify-content:center; overflow:hidden;
+}
+#collection-upsell-{{ section.id }} .upsell-row .media img{ max-width:100%; max-height:100%; object-fit:contain; display:block; }
+#collection-upsell-{{ section.id }} .upsell-row .info{ display:flex; flex-direction:column; gap:4px; }
+#collection-upsell-{{ section.id }} .upsell-row .title{ font-weight:600; }
+#collection-upsell-{{ section.id }} .upsell-row .spacer{ flex:1; }
+#collection-upsell-{{ section.id }} .upsell-row .button{ align-self:flex-start; }
+
+/* Responsive */
+@media (max-width:1024px){
+  #collection-upsell-{{ section.id }} .collection-upsell__grid{ grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); }
+}
+@media (max-width:640px){
+  #collection-upsell-{{ section.id }} .collection-upsell__grid{ grid-template-columns:repeat(2,minmax(0,1fr)); gap:.9rem; }
+  #collection-upsell-{{ section.id }} .product-card{ padding:12px; }
+  #collection-upsell-{{ section.id }} .product-card__media{ aspect-ratio:auto; height:clamp(120px,38vw,170px); }
+  #collection-upsell-{{ section.id }} .product-card__media img{ width:100%; height:100%; object-fit:contain; }
+
+  #collection-upsell-{{ section.id }} .upsell-modal__dialog{ width:94vw; max-height:90vh; border-radius:14px; }
+  #collection-upsell-{{ section.id }} .upsell-modal__content{ display:block; padding:56px 14px 14px; } /* keep top padding for X */
+  #collection-upsell-{{ section.id }} .upsell-modal__product img{ width:92px; }
+  #collection-upsell-{{ section.id }} .upsell-modal__right{ max-height:unset; padding-right:0; }
+  #collection-upsell-{{ section.id }} .upsell-modal__carousel{ display:flex; flex-direction:column; gap:10px; }
+  #collection-upsell-{{ section.id }} .upsell-row .media{ width:84px; min-width:84px; height:84px; }
+}
+@media (max-width:360px){
+  #collection-upsell-{{ section.id }} .collection-upsell__grid{ grid-template-columns:1fr; }
+}
+</style>
+

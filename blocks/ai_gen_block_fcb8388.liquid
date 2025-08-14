@@ -1,0 +1,670 @@
+{% doc %}
+  @prompt
+    I want you to create a section which can show a collection and in each product card have the image, price, sku and an add to cart button which opens a modal popup which shows complete your look and suggests products added in the product metafields.
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-collection-grid-{{ ai_gen_id }} {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: {{ block.settings.grid_gap }}px;
+    padding: {{ block.settings.section_padding }}px;
+  }
+
+  .ai-product-card-{{ ai_gen_id }} {
+    border: 1px solid {{ block.settings.card_border_color }};
+    border-radius: {{ block.settings.card_border_radius }}px;
+    overflow: hidden;
+    background: {{ block.settings.card_background }};
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .ai-product-card-{{ ai_gen_id }}:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  }
+
+  .ai-product-image-{{ ai_gen_id }} {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    overflow: hidden;
+  }
+
+  .ai-product-image-{{ ai_gen_id }} img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .ai-product-image-placeholder-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    background: #f4f4f4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ai-product-image-placeholder-{{ ai_gen_id }} svg {
+    width: 60%;
+    height: 60%;
+    opacity: 0.5;
+  }
+
+  .ai-product-info-{{ ai_gen_id }} {
+    padding: 16px;
+  }
+
+  .ai-product-title-{{ ai_gen_id }} {
+    font-size: 16px;
+    font-weight: 600;
+    color: {{ block.settings.text_color }};
+    margin: 0 0 8px 0;
+    line-height: 1.3;
+  }
+
+  .ai-product-price-{{ ai_gen_id }} {
+    font-size: 18px;
+    font-weight: 700;
+    color: {{ block.settings.price_color }};
+    margin: 0 0 8px 0;
+  }
+
+  .ai-product-sku-{{ ai_gen_id }} {
+    font-size: 12px;
+    color: {{ block.settings.sku_color }};
+    margin: 0 0 16px 0;
+    opacity: 0.7;
+  }
+
+  .ai-add-to-cart-btn-{{ ai_gen_id }} {
+    width: 100%;
+    padding: 12px;
+    background: {{ block.settings.button_color }};
+    color: {{ block.settings.button_text_color }};
+    border: none;
+    border-radius: {{ block.settings.button_border_radius }}px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+
+  .ai-add-to-cart-btn-{{ ai_gen_id }}:hover {
+    background: {{ block.settings.button_hover_color }};
+  }
+
+  .ai-modal-overlay-{{ ai_gen_id }} {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .ai-modal-overlay-{{ ai_gen_id }}.active {
+    display: flex;
+  }
+
+  .ai-modal-content-{{ ai_gen_id }} {
+    background: white;
+    border-radius: 12px;
+    max-width: 800px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+  }
+
+  .ai-modal-header-{{ ai_gen_id }} {
+    padding: 24px 24px 16px;
+    border-bottom: 1px solid #e5e5e5;
+    position: relative;
+  }
+
+  .ai-modal-title-{{ ai_gen_id }} {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0;
+    color: {{ block.settings.text_color }};
+  }
+
+  .ai-modal-close-{{ ai_gen_id }} {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: {{ block.settings.text_color }};
+    padding: 4px;
+  }
+
+  .ai-modal-body-{{ ai_gen_id }} {
+    padding: 24px;
+  }
+
+  .ai-selected-product-{{ ai_gen_id }} {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid #e5e5e5;
+  }
+
+  .ai-selected-product-image-{{ ai_gen_id }} {
+    width: 120px;
+    height: 120px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .ai-selected-product-image-{{ ai_gen_id }} img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .ai-selected-product-details-{{ ai_gen_id }} {
+    flex-grow: 1;
+  }
+
+  .ai-selected-product-title-{{ ai_gen_id }} {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+    color: {{ block.settings.text_color }};
+  }
+
+  .ai-selected-product-price-{{ ai_gen_id }} {
+    font-size: 20px;
+    font-weight: 700;
+    color: {{ block.settings.price_color }};
+    margin: 0 0 8px 0;
+  }
+
+  .ai-suggestions-title-{{ ai_gen_id }} {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0 0 20px 0;
+    color: {{ block.settings.text_color }};
+  }
+
+  .ai-suggestions-grid-{{ ai_gen_id }} {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+  }
+
+  .ai-suggestion-card-{{ ai_gen_id }} {
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: transform 0.2s ease;
+  }
+
+  .ai-suggestion-card-{{ ai_gen_id }}:hover {
+    transform: translateY(-2px);
+  }
+
+  .ai-suggestion-image-{{ ai_gen_id }} {
+    width: 100%;
+    aspect-ratio: 1;
+    overflow: hidden;
+  }
+
+  .ai-suggestion-image-{{ ai_gen_id }} img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .ai-suggestion-info-{{ ai_gen_id }} {
+    padding: 12px;
+  }
+
+  .ai-suggestion-title-{{ ai_gen_id }} {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 4px 0;
+    color: {{ block.settings.text_color }};
+    line-height: 1.3;
+  }
+
+  .ai-suggestion-price-{{ ai_gen_id }} {
+    font-size: 16px;
+    font-weight: 700;
+    color: {{ block.settings.price_color }};
+    margin: 0;
+  }
+
+  .ai-add-suggestion-btn-{{ ai_gen_id }} {
+    width: 100%;
+    padding: 8px;
+    background: {{ block.settings.button_color }};
+    color: {{ block.settings.button_text_color }};
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background 0.3s ease;
+  }
+
+  .ai-add-suggestion-btn-{{ ai_gen_id }}:hover {
+    background: {{ block.settings.button_hover_color }};
+  }
+
+  @media (max-width: 768px) {
+    .ai-collection-grid-{{ ai_gen_id }} {
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+      padding: 16px;
+    }
+
+    .ai-selected-product-{{ ai_gen_id }} {
+      flex-direction: column;
+      text-align: center;
+    }
+
+    .ai-selected-product-image-{{ ai_gen_id }} {
+      width: 100px;
+      height: 100px;
+      margin: 0 auto;
+    }
+
+    .ai-suggestions-grid-{{ ai_gen_id }} {
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+  }
+{% endstyle %}
+
+<collection-products-{{ ai_gen_id }}
+  class="ai-collection-grid-{{ ai_gen_id }}"
+  {{ block.shopify_attributes }}
+>
+  {% if block.settings.collection %}
+    {% for product in block.settings.collection.products limit: block.settings.products_limit %}
+      <div class="ai-product-card-{{ ai_gen_id }}">
+        <div class="ai-product-image-{{ ai_gen_id }}">
+          {% if product.featured_image %}
+            <img
+              src="{{ product.featured_image | image_url: width: 400 }}"
+              alt="{{ product.featured_image.alt | escape }}"
+              loading="lazy"
+              width="400"
+              height="400"
+            >
+          {% else %}
+            <div class="ai-product-image-placeholder-{{ ai_gen_id }}">
+              {{ 'product-1' | placeholder_svg_tag }}
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="ai-product-info-{{ ai_gen_id }}">
+          <h3 class="ai-product-title-{{ ai_gen_id }}">{{ product.title }}</h3>
+          <div class="ai-product-price-{{ ai_gen_id }}">{{ product.price | money }}</div>
+          {% if product.variants.first.sku != blank %}
+            <div class="ai-product-sku-{{ ai_gen_id }}">SKU: {{ product.variants.first.sku }}</div>
+          {% endif %}
+          <button
+            class="ai-add-to-cart-btn-{{ ai_gen_id }}"
+            data-product-id="{{ product.id }}"
+            data-product-title="{{ product.title | escape }}"
+            data-product-price="{{ product.price | money }}"
+            data-product-image="{{ product.featured_image | image_url: width: 200 }}"
+            data-suggestions="{{ product.metafields.custom.suggested_products.value | map: 'id' | join: ',' }}"
+          >
+            {{ block.settings.add_to_cart_text }}
+          </button>
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    {% for i in (1..6) %}
+      <div class="ai-product-card-{{ ai_gen_id }}">
+        <div class="ai-product-image-{{ ai_gen_id }}">
+          <div class="ai-product-image-placeholder-{{ ai_gen_id }}">
+            {{ 'product-1' | placeholder_svg_tag }}
+          </div>
+        </div>
+        <div class="ai-product-info-{{ ai_gen_id }}">
+          <h3 class="ai-product-title-{{ ai_gen_id }}">Sample Product {{ i }}</h3>
+          <div class="ai-product-price-{{ ai_gen_id }}">$29.99</div>
+          <div class="ai-product-sku-{{ ai_gen_id }}">SKU: SAMPLE{{ i }}</div>
+          <button class="ai-add-to-cart-btn-{{ ai_gen_id }}">
+            {{ block.settings.add_to_cart_text }}
+          </button>
+        </div>
+      </div>
+    {% endfor %}
+  {% endif %}
+</collection-products-{{ ai_gen_id }}>
+
+<div class="ai-modal-overlay-{{ ai_gen_id }}" id="modal-{{ ai_gen_id }}">
+  <div class="ai-modal-content-{{ ai_gen_id }}">
+    <div class="ai-modal-header-{{ ai_gen_id }}">
+      <h2 class="ai-modal-title-{{ ai_gen_id }}">{{ block.settings.modal_title }}</h2>
+      <button class="ai-modal-close-{{ ai_gen_id }}" aria-label="Close modal">&times;</button>
+    </div>
+    <div class="ai-modal-body-{{ ai_gen_id }}"><div class="ai-selected-product-{{ ai_gen_id }}">
+        <div class="ai-selected-product-image-{{ ai_gen_id }}">
+          <img id="selected-image-{{ ai_gen_id }}" src="" alt="">
+        </div>
+        <div class="ai-selected-product-details-{{ ai_gen_id }}">
+          <h3 class="ai-selected-product-title-{{ ai_gen_id }}" id="selected-title-{{ ai_gen_id }}"></h3>
+          <div class="ai-selected-product-price-{{ ai_gen_id }}" id="selected-price-{{ ai_gen_id }}"></div>
+        </div>
+      </div>
+      <h3 class="ai-suggestions-title-{{ ai_gen_id }}">{{ block.settings.suggestions_title }}</h3>
+      <div class="ai-suggestions-grid-{{ ai_gen_id }}" id="suggestions-grid-{{ ai_gen_id }}">
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  class CollectionProducts{{ ai_gen_id }} extends HTMLElement {
+    constructor() {
+      super();
+      this.modal = document.getElementById('modal-{{ ai_gen_id }}');
+      this.closeBtn = this.modal.querySelector('.ai-modal-close-{{ ai_gen_id }}');
+      this.suggestionsGrid = document.getElementById('suggestions-grid-{{ ai_gen_id }}');
+    }
+
+    connectedCallback() {
+      this.setupEventListeners();
+    }
+
+    setupEventListeners() {
+      this.querySelectorAll('.ai-add-to-cart-btn-{{ ai_gen_id }}').forEach(btn => {
+        btn.addEventListener('click', (e) => this.handleAddToCart(e));
+      });
+
+      this.closeBtn.addEventListener('click', () => this.closeModal());
+      this.modal.addEventListener('click', (e) => {
+        if (e.target === this.modal) this.closeModal();
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && this.modal.classList.contains('active')) {
+          this.closeModal();
+        }
+      });
+    }
+
+    async handleAddToCart(e) {
+      const btn = e.target;
+      const productId = btn.dataset.productId;
+      const productTitle = btn.dataset.productTitle;
+      const productPrice = btn.dataset.productPrice;
+      const productImage = btn.dataset.productImage;
+      const suggestions = btn.dataset.suggestions;
+
+      document.getElementById('selected-title-{{ ai_gen_id }}').textContent = productTitle;
+      document.getElementById('selected-price-{{ ai_gen_id }}').textContent = productPrice;
+      document.getElementById('selected-image-{{ ai_gen_id }}').src = productImage;
+
+      if (suggestions) {
+        await this.loadSuggestions(suggestions.split(','));
+      } else {
+        this.suggestionsGrid.innerHTML = '<p>No suggestions available</p>';
+      }
+
+      this.openModal();
+    }
+
+    async loadSuggestions(productIds) {
+      this.suggestionsGrid.innerHTML = '<p>Loading suggestions...</p>';
+      
+      try {
+        const promises = productIds.map(id => 
+          fetch(`/products/${id}.js`).then(res => res.json())
+        );
+        
+        const products = await Promise.all(promises);
+        this.renderSuggestions(products);
+      } catch (error) {
+        this.suggestionsGrid.innerHTML = '<p>Unable to load suggestions</p>';
+      }
+    }
+
+    renderSuggestions(products) {
+      this.suggestionsGrid.innerHTML = '';
+      
+      products.forEach(product => {
+        const card = document.createElement('div');
+        card.className = 'ai-suggestion-card-{{ ai_gen_id }}';
+        
+        const imageUrl = product.featured_image ? 
+          product.featured_image.replace('.jpg', '_200x200.jpg').replace('.png', '_200x200.png') : 
+          '';
+        
+        card.innerHTML = `
+          <div class="ai-suggestion-image-{{ ai_gen_id }}">
+            ${imageUrl ? `<img src="${imageUrl}" alt="${product.title}">` : '{{ "product-1" | placeholder_svg_tag }}'}
+          </div>
+          <div class="ai-suggestion-info-{{ ai_gen_id }}">
+            <h4 class="ai-suggestion-title-{{ ai_gen_id }}">${product.title}</h4>
+            <div class="ai-suggestion-price-{{ ai_gen_id }}">$${(product.price / 100).toFixed(2)}</div>
+            <button class="ai-add-suggestion-btn-{{ ai_gen_id }}" data-variant-id="${product.variants[0].id}">
+              Add to Cart
+            </button>
+          </div>
+        `;
+        
+        this.suggestionsGrid.appendChild(card);
+      });
+
+      this.suggestionsGrid.querySelectorAll('.ai-add-suggestion-btn-{{ ai_gen_id }}').forEach(btn => {
+        btn.addEventListener('click', (e) => this.addSuggestionToCart(e));
+      });
+    }
+
+    async addSuggestionToCart(e) {
+      const btn = e.target;
+      const variantId = btn.dataset.variantId;
+      
+      btn.textContent = 'Adding...';
+      btn.disabled = true;
+      
+      try {
+        const response = await fetch('/cart/add.js', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            items: [{
+              id: variantId,
+              quantity: 1
+            }]
+          })
+        });
+        
+        if (response.ok) {
+          btn.textContent = 'Added!';
+          setTimeout(() => {
+            btn.textContent = 'Add to Cart';
+            btn.disabled = false;
+          }, 2000);
+        } else {
+          throw new Error('Failed to add to cart');
+        }
+      } catch (error) {
+        btn.textContent = 'Error';
+        setTimeout(() => {
+          btn.textContent = 'Add to Cart';
+          btn.disabled = false;
+        }, 2000);
+      }
+    }
+
+    openModal() {
+      this.modal.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    closeModal() {
+      this.modal.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+  }
+
+  customElements.define('collection-products-{{ ai_gen_id }}', CollectionProducts{{ ai_gen_id }});
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Collection showcase",
+  "settings": [
+    {
+      "type": "collection",
+      "id": "collection",
+      "label": "Collection"
+    },
+    {
+      "type": "range",
+      "id": "products_limit",
+      "min": 1,
+      "max": 50,
+      "step": 1,
+      "label": "Products to show",
+      "default": 12
+    },
+    {
+      "type": "text",
+      "id": "add_to_cart_text",
+      "label": "Add to cart button text",
+      "default": "Add to Cart"
+    },
+    {
+      "type": "text",
+      "id": "modal_title",
+      "label": "Modal title",
+      "default": "Complete Your Look"
+    },
+    {
+      "type": "text",
+      "id": "suggestions_title",
+      "label": "Suggestions title",
+      "default": "You might also like"
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "grid_gap",
+      "min": 10,
+      "max": 50,
+      "step": 2,
+      "unit": "px",
+      "label": "Grid gap",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "section_padding",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Section padding",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "card_border_radius",
+      "min": 0,
+      "max": 20,
+      "step": 2,
+      "unit": "px",
+      "label": "Card border radius",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "button_border_radius",
+      "min": 0,
+      "max": 20,
+      "step": 2,
+      "unit": "px",
+      "label": "Button border radius",
+      "default": 6
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "card_background",
+      "label": "Card background",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "card_border_color",
+      "label": "Card border",
+      "default": "#e5e5e5"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "price_color",
+      "label": "Price color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "sku_color",
+      "label": "SKU color",
+      "default": "#666666"
+    },
+    {
+      "type": "color",
+      "id": "button_color",
+      "label": "Button color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "Button text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "button_hover_color",
+      "label": "Button hover color",
+      "default": "#333333"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Collection showcase"
+    }
+  ]
+}
+{% endschema %}
