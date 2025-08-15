@@ -1,0 +1,45 @@
+
+<h2 class="">{{ section.settings.demo_text }}</h2>
+
+{% for block in section.blocks %}
+  <div class="demo-block">
+    <h3>{{ block.settings.demo_block }}</h3>
+  </div>
+{% endfor %}
+
+{% schema %}
+{
+  "name": "Demo Section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "demo_text",
+      "label": "Demo Text",
+      "default": "This is a demo section"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "text",
+      "name": "Demo Block",
+      "settings": [
+        {
+          "type": "text",
+          "id": "demo_block",
+          "label": "Demo Block",
+          "default": "This is a demo block"
+        }
+      ]
+    }
+  ],
+  "enabled_on": {
+    "templates": ["*"]
+  },
+  "presets": [
+    {
+      "name": "Demo Section",
+      "category": "Custom"
+    }
+  ]
+}
+{% endschema %}

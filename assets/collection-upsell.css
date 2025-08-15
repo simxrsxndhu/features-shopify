@@ -1,0 +1,130 @@
+/* ---------- Section alignment (match Horizon page width) ---------- */
+.collection-upsell > .page-width{
+  max-width: var(--page-width, 1200px);
+  margin-inline: auto;
+  padding-inline: clamp(12px, 3vw, 24px);
+}
+
+/* Heading (unchanged look) */
+.collection-upsell .collection-upsell__heading{
+  font-size: clamp(1.25rem, 1.2rem + .6vw, 1.75rem);
+  line-height: 1.2; margin: 0 0 1rem;
+}
+
+/* Grid (same as you had) */
+.collection-upsell .collection-upsell__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1.2rem;
+  justify-content: center;
+}
+.collection-upsell .product-card{
+  border:1px solid rgba(0,0,0,.08);
+  border-radius:16px; padding:14px; background:#fff;
+  display:flex; flex-direction:column; height:100%;
+  box-shadow:0 1px 0 rgba(0,0,0,.03);
+  transition:transform .2s ease, box-shadow .2s ease;
+}
+.collection-upsell .product-card:hover{
+  transform: translateY(-2px);
+  box-shadow:0 8px 24px rgba(0,0,0,.08);
+}
+.collection-upsell .product-card__media{
+  position:relative; width:100%; aspect-ratio:1/1;
+  background:#f6f6f6; border-radius:12px; overflow:hidden;
+  display:flex; align-items:center; justify-content:center; margin-bottom:.6rem;
+}
+.collection-upsell .product-card__media img{ max-width:100%; max-height:100%; object-fit:contain; display:block; }
+.collection-upsell .product-card__title{ font-size:1rem; margin:0 0 .3rem; }
+.collection-upsell .product-card__sku{ font-size:.875rem; opacity:.7; margin-bottom:.8rem; }
+.collection-upsell .product-card .button{ margin-top:auto; }
+
+/* ---------- Modal shell ---------- */
+.collection-upsell .upsell-modal[hidden]{ display:none; }
+.collection-upsell .upsell-modal{ position:fixed; inset:0; z-index:999999; display:grid; place-items:center; }
+.collection-upsell .upsell-modal__backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:999998; }
+
+/* Dialog */
+.collection-upsell .upsell-modal__dialog{
+  position:relative; z-index:999999; background:#fff;
+  width:min(980px,92vw); max-height:88vh; overflow:hidden;
+  border-radius:18px; box-shadow:0 18px 44px rgba(0,0,0,.28);
+  /* remove internal padding so X can sit above cleanly */
+}
+
+/* Close button — big hit area + safe area + never overlaps */
+.collection-upsell .upsell-modal__close{
+  position:absolute;
+  top: max(10px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
+  width:36px; height:36px;
+  border:0; border-radius:999px;
+  background:rgba(0,0,0,.05);
+  color:#000; font-size:20px; line-height:1;
+  display:grid; place-items:center;
+  cursor:pointer; z-index:3;
+}
+.collection-upsell .upsell-modal__close:hover{ background:rgba(0,0,0,.09); }
+
+/* Content grid (give extra top padding so X never overlaps content) */
+.collection-upsell .upsell-modal__content{
+  display:grid; grid-template-columns:1fr 1fr; gap:20px;
+  grid-template-areas:"left right" "footer footer";
+  padding: 56px 18px 18px; /* <-- extra top padding for the X */
+}
+.collection-upsell .upsell-modal__left{ grid-area:left; }
+.collection-upsell .upsell-modal__right{ grid-area:right; overflow:auto; max-height:58vh; padding-right:6px; }
+
+.collection-upsell .upsell-modal__footer{
+  grid-area:footer; display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:6px;
+  position:sticky; bottom:0; background:#fff; padding-top:12px; border-top:1px solid rgba(0,0,0,.06);
+}
+.collection-upsell .upsell-modal__subtotal{ font-weight:600; }
+
+/* Left/base product */
+.collection-upsell .upsell-modal__eyebrow{
+  margin: 2px 0 10px; font-size:.9rem; text-transform:uppercase; letter-spacing:.02em; opacity:.75;
+}
+.collection-upsell .upsell-modal__product .base{
+  display:flex; gap:14px; align-items:center; margin-bottom:12px;
+}
+.collection-upsell .upsell-modal__product img{ width:110px; height:auto; border-radius:12px; }
+.collection-upsell .upsell-modal__product h3{ margin:0 0 4px 0; font-size:clamp(1.2rem,1rem + .7vw,1.8rem); }
+
+/* Right list rows */
+.collection-upsell .upsell-modal__carousel{ display:grid; gap:12px; grid-template-columns:1fr; }
+.collection-upsell .upsell-row{
+  border:1px solid rgba(0,0,0,.08); border-radius:14px; padding:12px; background:#fff;
+  display:flex; gap:12px; align-items:center; height:100%;
+}
+.collection-upsell .upsell-row.is-disabled{ opacity:.5; }
+.collection-upsell .upsell-row .media{
+  width:96px; min-width:96px; height:96px; background:#f6f6f6; border-radius:10px;
+  display:flex; align-items:center; justify-content:center; overflow:hidden;
+}
+.collection-upsell .upsell-row .media img{ max-width:100%; max-height:100%; object-fit:contain; display:block; }
+.collection-upsell .upsell-row .info{ display:flex; flex-direction:column; gap:4px; }
+.collection-upsell .upsell-row .title{ font-weight:600; }
+.collection-upsell .upsell-row .spacer{ flex:1; }
+.collection-upsell .upsell-row .button{ align-self:flex-start; }
+
+/* Responsive */
+@media (max-width:1024px){
+  .collection-upsell .collection-upsell__grid{ grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); }
+}
+@media (max-width:640px){
+  .collection-upsell .collection-upsell__grid{ grid-template-columns:repeat(2,minmax(0,1fr)); gap:.9rem; }
+  .collection-upsell .product-card{ padding:12px; }
+  .collection-upsell .product-card__media{ aspect-ratio:auto; height:clamp(120px,38vw,170px); }
+  .collection-upsell .product-card__media img{ width:100%; height:100%; object-fit:contain; }
+
+  .collection-upsell .upsell-modal__dialog{ width:94vw; max-height:90vh; border-radius:14px; }
+  .collection-upsell .upsell-modal__content{ display:block; padding:56px 14px 14px; } /* keep top padding for X */
+  .collection-upsell .upsell-modal__product img{ width:92px; }
+  .collection-upsell .upsell-modal__right{ max-height:unset; padding-right:0; }
+  .collection-upsell .upsell-modal__carousel{ display:flex; flex-direction:column; gap:10px; }
+  .collection-upsell .upsell-row .media{ width:84px; min-width:84px; height:84px; }
+}
+@media (max-width:360px){
+  .collection-upsell .collection-upsell__grid{ grid-template-columns:1fr; }
+}
